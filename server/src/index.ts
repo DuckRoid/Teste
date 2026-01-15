@@ -76,6 +76,15 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    // Validate required environment variables
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
+
+    if (!process.env.MONGODB_URI) {
+      console.warn('⚠️  MONGODB_URI not set, using default: mongodb://localhost:27017/chat-app');
+    }
+
     await connectDB();
     
     httpServer.listen(PORT, () => {

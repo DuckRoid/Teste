@@ -14,7 +14,13 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { userId: string };
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      res.status(500).json({ message: 'Server configuration error' });
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
     req.userId = decoded.userId;
     next();
   } catch (error) {

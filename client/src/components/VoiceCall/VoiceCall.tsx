@@ -75,8 +75,9 @@ const VoiceCall: React.FC<VoiceCallProps> = ({ targetUserId, callType, onClose }
       }
     } catch (error) {
       console.error('Failed to get media stream:', error);
-      alert('Failed to access camera/microphone');
-      onClose();
+      // Show error state instead of alert
+      setCallStatus('ended');
+      setTimeout(() => onClose(), 2000);
     }
   };
 

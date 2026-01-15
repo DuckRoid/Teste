@@ -1,9 +1,9 @@
-import { Server as SocketIOServer } from 'socket.io';
+import { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import Message from '../models/Message';
 import User from '../models/User';
 
-interface AuthenticatedSocket extends SocketIOServer {
+interface AuthenticatedSocket extends Socket {
   userId?: string;
 }
 
@@ -11,23 +11,28 @@ const onlineUsers = new Map<string, string>(); // userId -> socketId
 
 export const initializeSocket = (io: SocketIOServer): void => {
   // Authentication middleware
-  io.use((socket: any, next) => {
+  io.use((socket: Socket, next) => {
     const token = socket.handshake.auth.token;
     
     if (!token) {
       return next(new Error('Authentication error'));
     }
 
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return next(new Error('Server configuration error'));
+    }
+
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { userId: string };
-      socket.userId = decoded.userId;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET) as { userId: string };
+      (socket as AuthenticatedSocket).userId = decoded.userId;
       next();
     } catch (err) {
       next(new Error('Authentication error'));
     }
   });
 
-  io.on('connection', async (socket: any) => {
+  io.on('connection', async (socket: AuthenticatedSocket) => {
     console.log(`✅ User connected: ${socket.userId}`);
     
     // Store online user
@@ -93,7 +98,7 @@ export const initializeSocket = (io: SocketIOServer): void => {
     });
 
     // WebRTC signaling for voice/video calls
-    socket.on('call:offer', (data: { to: string; offer: any; callType: 'voice' | 'video' }) => {
+    socket.on('call:offer', (data: { to: string; offer: RTCSessionDescriptionInit; callType: 'voice' | 'video' }) => {
       const targetSocketId = onlineUsers.get(data.to);
       if (targetSocketId) {
         io.to(targetSocketId).emit('call:offer', {
@@ -104,7 +109,7 @@ export const initializeSocket = (io: SocketIOServer): void => {
       }
     });
 
-    socket.on('call:answer', (data: { to: string; answer: any }) => {
+    socket.on('call:answer', (data: { to: string; answer: RTCSessionDescriptionInit }) => {
       const targetSocketId = onlineUsers.get(data.to);
       if (targetSocketId) {
         io.to(targetSocketId).emit('call:answer', {
@@ -114,7 +119,7 @@ export const initializeSocket = (io: SocketIOServer): void => {
       }
     });
 
-    socket.on('call:ice-candidate', (data: { to: string; candidate: any }) => {
+    socket.on('call:ice-candidate', (data: { to: string; candidate: RTCIceCandidateInit }) => {
       const targetSocketId = onlineUsers.get(data.to);
       if (targetSocketId) {
         io.to(targetSocketId).emit('call:ice-candidate', {

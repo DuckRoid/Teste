@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
 import Server from '../models/Server';
 import Channel from '../models/Channel';
@@ -100,12 +101,14 @@ export const joinServer = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    if (server.members.includes(req.userId as any)) {
+    const userObjectId = new mongoose.Types.ObjectId(req.userId);
+    
+    if (server.members.some(memberId => memberId.equals(userObjectId))) {
       res.status(400).json({ message: 'Already a member of this server' });
       return;
     }
 
-    server.members.push(req.userId as any);
+    server.members.push(userObjectId);
     await server.save();
 
     const populatedServer = await Server.findById(serverId)

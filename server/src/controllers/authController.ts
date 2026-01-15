@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User';
+import { AuthRequest } from '../middleware/auth';
 
 // Validation rules
 export const registerValidation = [
@@ -38,7 +39,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     await user.save();
 
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: '7d'
     });
 
@@ -89,7 +94,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     await user.save();
 
     // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: '7d'
     });
 
@@ -111,7 +120,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Get current user
-export const getCurrentUser = async (req: any, res: Response): Promise<void> => {
+export const getCurrentUser = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = await User.findById(req.userId).select('-password');
     if (!user) {
@@ -127,7 +136,7 @@ export const getCurrentUser = async (req: any, res: Response): Promise<void> => 
 };
 
 // Update user status
-export const updateStatus = async (req: any, res: Response): Promise<void> => {
+export const updateStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { status } = req.body;
     

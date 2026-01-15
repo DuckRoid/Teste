@@ -11,6 +11,8 @@ export interface IUser extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
+const DEFAULT_AVATAR_URL = 'https://ui-avatars.com/api/?background=6C5CE7&color=fff&name=';
+
 const userSchema = new Schema<IUser>({
   username: {
     type: String,
@@ -34,7 +36,7 @@ const userSchema = new Schema<IUser>({
   },
   avatar: {
     type: String,
-    default: 'https://ui-avatars.com/api/?background=6C5CE7&color=fff&name='
+    default: DEFAULT_AVATAR_URL
   },
   status: {
     type: String,
@@ -67,8 +69,8 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
 
 // Set default avatar with username
 userSchema.pre('save', function(next) {
-  if (!this.avatar || this.avatar === 'https://ui-avatars.com/api/?background=6C5CE7&color=fff&name=') {
-    this.avatar = `https://ui-avatars.com/api/?background=6C5CE7&color=fff&name=${this.username}`;
+  if (!this.avatar || this.avatar === DEFAULT_AVATAR_URL) {
+    this.avatar = `${DEFAULT_AVATAR_URL}${this.username}`;
   }
   next();
 });
